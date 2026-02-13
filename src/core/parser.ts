@@ -80,7 +80,12 @@ export class LiteParse {
     );
     log(`Extracted ${pages.length} pages`);
 
-    // Process pages with complete grid projection
+    // run BEFORE grid projection
+    if (this.ocrEngine) {
+      await this.runOCR(doc, pages, log);
+    }
+
+    // Process pages with complete grid projection (after OCR)
     const processedPages = projectPagesToGrid(pages, this.config);
 
     // Build bounding boxes if enabled
@@ -97,11 +102,6 @@ export class LiteParse {
         const tables = detectTables(pages[i].paths, pages[i].textItems);
         page.tables = tables;
       }
-    }
-
-    // OCR integration
-    if (this.ocrEngine) {
-      await this.runOCR(doc, pages, processedPages, log);
     }
 
     // Build final text
@@ -139,7 +139,7 @@ export class LiteParse {
   }
 
   /**
-   * Generate screenshots of PDF pages using PDFium
+   * Generate screenshots of PDF pages
    */
   async screenshot(
     filePath: string,
@@ -170,15 +170,13 @@ export class LiteParse {
         }
 
         log(`Rendering page ${pageNum}...`);
-
-        // Render page using PDFium
         const imageBuffer = await renderer.renderPageToBuffer(
           filePath,
           pageNum,
           this.config.dpi
         );
 
-        // Get page dimensions from pdfjs
+        // Get page dimensions
         const pageData = await this.pdfEngine.extractPage(doc, pageNum);
 
         results.push({
@@ -203,17 +201,15 @@ export class LiteParse {
    */
   private async runOCR(
     doc: any,
-    originalPages: any[],
-    processedPages: any[],
+    pages: any[],
     log: (msg: string) => void
   ): Promise<void> {
     if (!this.ocrEngine) return;
 
     log('Running OCR on pages...');
 
-    for (let i = 0; i < originalPages.length; i++) {
-      const page = originalPages[i];
-      const processedPage = processedPages[i];
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
 
       // Check if page has very little text (indicating need for OCR)
       const textLength = page.textItems.reduce(
@@ -249,7 +245,7 @@ export class LiteParse {
             correctRotation: true,
           });
 
-          // Convert OCR results to text items and add to processed page
+          // Convert OCR results to text items and add to page
           if (ocrResults.length > 0) {
             const ocrTextItems = ocrResults
               .filter((r) => r.confidence > 0.1) // Filter low confidence
@@ -264,8 +260,8 @@ export class LiteParse {
                 fromOcr: true,
               }));
 
-            // Add OCR text to page (will be merged in grid projection if needed)
-            processedPage.ocrTextItems = ocrTextItems;
+            // Add OCR text items directly to page textItems
+            page.textItems.push(...ocrTextItems);
             log(
               `  Found ${ocrTextItems.length} text items from OCR on page ${page.pageNum}`
             );

@@ -17,15 +17,7 @@ export class TesseractEngine implements OcrEngine {
       await this.worker.terminate();
     }
 
-    console.log(`Initializing Tesseract OCR for language: ${language}`);
-    this.worker = await createWorker(language, 1, {
-      logger: (m) => {
-        // Only log progress, not every detail
-        if (m.status === 'recognizing text') {
-          process.stdout.write(`\rOCR Progress: ${Math.round(m.progress * 100)}%`);
-        }
-      },
-    });
+    this.worker = await createWorker(language, 1);
     this.currentLanguage = language;
   }
 
@@ -77,16 +69,12 @@ export class TesseractEngine implements OcrEngine {
   ): Promise<OcrResult[][]> {
     const results: OcrResult[][] = [];
 
-    console.log(`\nProcessing ${imagePaths.length} images with Tesseract OCR...`);
-
     for (let i = 0; i < imagePaths.length; i++) {
       const imagePath = imagePaths[i];
-      console.log(`\nProcessing image ${i + 1}/${imagePaths.length}: ${imagePath}`);
       const result = await this.recognize(imagePath, options);
       results.push(result);
     }
 
-    console.log('\n'); // Clear progress line
     return results;
   }
 

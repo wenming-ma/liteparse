@@ -37,3 +37,10 @@ screenshots/
 # Temporary files
 tmp/
 temp/
+*.txt
+*.png
+deno.json
+
+# Experimental/development artifacts
+ac/
+examples/

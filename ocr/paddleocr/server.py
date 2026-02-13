@@ -38,11 +38,12 @@ def ocr_endpoint():
     # Initialize OCR if needed or language changed
     if ocr is None or current_language != paddle_lang:
         print(f"Initializing PaddleOCR for language: {paddle_lang}")
+        # PaddleOCR 3.x parameters
         ocr = PaddleOCR(
-            use_angle_cls=True,
             lang=paddle_lang,
-            use_gpu=False,
-            show_log=False
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=True,
         )
         current_language = paddle_lang
 
@@ -61,28 +62,70 @@ def ocr_endpoint():
     image_array = np.array(image)
 
     # Run OCR
-    # PaddleOCR returns: [[[bbox], (text, confidence)], ...]
-    # where bbox is [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-    results = ocr.ocr(image_array, cls=True)
+    # PaddleOCR 3.x returns: list of result dicts
+    # Each result has: res['rec_texts'], res['rec_scores'], res['rec_boxes']
+    results = ocr.predict(image_array)
+
+    # Debug: print result structure
+    print(f"Results type: {type(results)}")
+    if results:
+        print(f"First result type: {type(results[0])}")
+        if hasattr(results[0], '__dict__'):
+            print(f"First result attrs: {dir(results[0])}")
+        if isinstance(results[0], dict):
+            print(f"First result keys: {results[0].keys()}")
 
     # Format results according to LiteParse OCR API spec
     # Convert to: { text, bbox: [x1, y1, x2, y2], confidence }
     formatted = []
 
-    if results and results[0]:
-        for line in results[0]:
-            # line is [[[x1,y1], [x2,y2], [x3,y3], [x4,y4]], (text, confidence)]
-            coords, (text, confidence) = line
+    if results and len(results) > 0:
+        # Get the first result
+        result = results[0]
 
-            # Convert polygon to axis-aligned bounding box
-            xs = [point[0] for point in coords]
-            ys = [point[1] for point in coords]
-            bbox = [min(xs), min(ys), max(xs), max(ys)]
+        res_data = result.get('res', result) if isinstance(result, dict) else result
+        print(f"res_data type: {type(res_data)}, keys/attrs: {res_data.keys() if isinstance(res_data, dict) else dir(res_data)}")
+
+        # Extract texts, scores, and boxes from the result
+        if isinstance(res_data, dict):
+            texts = res_data.get('rec_texts', [])
+            scores = res_data.get('rec_scores', [])
+            boxes = res_data.get('rec_boxes', [])
+        else:
+            # Fallback for result object with attributes
+            texts = getattr(res_data, 'rec_texts', []) or []
+            scores = getattr(res_data, 'rec_scores', []) or []
+            boxes = getattr(res_data, 'rec_boxes', []) or []
+
+        # Convert numpy arrays to lists if needed
+        if hasattr(texts, 'tolist'):
+            texts = texts.tolist()
+        if hasattr(scores, 'tolist'):
+            scores = scores.tolist()
+        if hasattr(boxes, 'tolist'):
+            boxes = boxes.tolist()
+
+        # Combine them - they should be parallel arrays
+        for i in range(len(texts)):
+            text = texts[i]
+            confidence = float(scores[i]) if i < len(scores) else 0.0
+
+            # Get bounding box coordinates
+            # rec_boxes format is typically [x_min, y_min, x_max, y_max]
+            if i < len(boxes):
+                box = boxes[i]
+                # Convert to list and ensure 4 coordinates
+                if hasattr(box, 'tolist'):
+                    bbox = box.tolist()
+                else:
+                    bbox = list(box)
+            else:
+                bbox = [0, 0, 0, 0]
 
             formatted.append({
                 'text': text,
                 'bbox': bbox,
-                'confidence': float(confidence)
+                'confidence': confidence
             })
 
     return jsonify({

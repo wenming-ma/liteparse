@@ -50,7 +50,12 @@ export class PdfiumRenderer {
               channels: 4, // RGBA
             },
           })
-            .png()
+            .png({
+              compressionLevel: 6,
+            })
+            .withMetadata({
+              density: dpi,
+            })
             .toBuffer();
         },
       });

@@ -22,11 +22,48 @@ LiteParse is a standalone OSS PDF parsing tool focused exclusively on **fast and
 
 ## Installation
 
-### Option 1: Use as a Library
+### CLI Tool
 
-Install via npm/pnpm:
+#### Option 1: Global Install (Recommended)
+
+Install globally via npm to use the `liteparse` command anywhere:
 
 ```bash
+npm i -g liteparse
+```
+
+Then use it:
+
+```bash
+liteparse parse document.pdf
+liteparse screenshot document.pdf
+```
+
+#### Option 2: Use with npx
+
+Run directly without installing:
+
+```bash
+npx liteparse parse document.pdf
+npx liteparse screenshot document.pdf
+```
+
+#### Option 3: Homebrew (macOS/Linux)
+
+Coming soon! Once published, you'll be able to install via Homebrew:
+
+```bash
+brew tap yourusername/liteparse
+brew install liteparse
+```
+
+### Library Usage
+
+Install as a dependency in your project:
+
+```bash
+npm install liteparse
+# or
 pnpm add liteparse
 ```
 
@@ -38,56 +75,32 @@ const result = await parser.parse('document.pdf');
 console.log(result.text);
 ```
 
-### Option 2: Build from Source
+### Build from Source
+
+If you want to contribute or build from source:
 
 #### Prerequisites
 
-- Node.js 22.4.1 or higher
-- pnpm package manager
-- [Bun](https://bun.sh) (for building binaries)
+- Node.js 18.0.0 or higher
+- npm or pnpm package manager
 
-#### Install Dependencies
+#### Steps
 
 ```bash
+# Clone the repository
+git clone https://github.com/run-llama/liteparse.git
 cd liteparse
+
+# Install dependencies
+npm install
+# or
 pnpm install
-```
 
-#### Build TypeScript
+# Build TypeScript
+npm run build
 
-```bash
-pnpm build
-```
-
-#### Build Binary (Optional)
-
-Build a standalone executable that you can run anywhere:
-
-```bash
-# Install Bun if you haven't already
-curl -fsSL https://bun.sh/install | bash
-
-# Build binary for your current platform
-pnpm build:binary
-
-# Or build for specific platforms
-pnpm build:bun:linux    # Linux x64
-pnpm build:bun:macos    # macOS ARM64
-pnpm build:bun:windows  # Windows x64
-pnpm build:bun:all      # All platforms
-
-# The binary will be in ./bin/lp (or lp-{platform})
-```
-
-Once built, you can use the binary directly:
-
-```bash
-# Add to your PATH
-export PATH="$PATH:/path/to/liteparse/bin"
-
-# Now use it anywhere
-lp parse document.pdf
-lp screenshot document.pdf
+# Use the CLI locally
+node dist/src/index.js parse document.pdf
 ```
 
 ## Development Usage
@@ -136,7 +149,7 @@ pnpm screenshot document.pdf --pages "1-10"
 #### Parse Command
 
 ```
-lp parse <file> [options]
+liteparse parse <file> [options]
 
 Options:
   -o, --output <file>              Output file path
@@ -158,7 +171,7 @@ Options:
 #### Screenshot Command
 
 ```
-lp screenshot <file> [options]
+liteparse screenshot <file> [options]
 
 Options:
   -o, --output-dir <dir>           Output directory for screenshots (default: "./screenshots")
