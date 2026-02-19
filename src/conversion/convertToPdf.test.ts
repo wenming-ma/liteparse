@@ -137,7 +137,7 @@ describe("test convertOfficeDocument", () => {
     });
     mockProc.stdout.emit("data", "command not found");
 
-    expect(convertOfficeDocument("test_command.docx", "./")).rejects.toThrow(
+    await expect(convertOfficeDocument("test_command.docx", "./")).rejects.toThrow(
       "LibreOffice is not installed. Please install LibreOffice to convert office documents. On macOS: brew install --cask libreoffice, On Ubuntu: apt-get install libreoffice"
     );
   });
@@ -148,7 +148,7 @@ describe("test convertOfficeDocument", () => {
     });
     mockProc.stdout.emit("data", "conversion successfull");
 
-    expect(convertOfficeDocument("test_fail.docx", "./")).rejects.toThrow(
+    await expect(convertOfficeDocument("test_fail.docx", "./")).rejects.toThrow(
       "LibreOffice conversion succeeded but output PDF not found"
     );
   });
@@ -171,7 +171,7 @@ describe("test convertImageToPdf", () => {
     });
     mockProc.stdout.emit("data", "command not found");
 
-    expect(convertImageToPdf("test_command.png", "./")).rejects.toThrow(
+    await expect(convertImageToPdf("test_command.png", "./")).rejects.toThrow(
       "ImageMagick is not installed. Please install ImageMagick to convert images. On macOS: brew install imagemagick, On Ubuntu: apt-get install imagemagick"
     );
   });

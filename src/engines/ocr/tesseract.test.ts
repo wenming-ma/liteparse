@@ -75,7 +75,7 @@ describe("test Tesseract OCR (single image)", () => {
   it("test engine failure (failed to initialize)", async () => {
     const engine = new TesseractEngine();
     expect(engine.name).toBe("tesseract");
-    expect(engine.recognize("cat.png", { language: "it" })).rejects.toThrow(
+    await expect(engine.recognize("cat.png", { language: "it" })).rejects.toThrow(
       "Tesseract worker not initialized"
     );
   });
@@ -92,7 +92,7 @@ describe("test OCR simple HTTP server (batch)", () => {
   it("test engine failure (failed to initialize)", async () => {
     const engine = new TesseractEngine();
     expect(engine.name).toBe("tesseract");
-    expect(engine.recognizeBatch(["cat.png", "dog.png"], { language: "it" })).rejects.toThrow(
+    await expect(engine.recognizeBatch(["cat.png", "dog.png"], { language: "it" })).rejects.toThrow(
       "Tesseract worker not initialized"
     );
   });

@@ -82,6 +82,6 @@ describe("test renderPageToBuffer", () => {
 
   it("test error propagation", async () => {
     const renderer = new PdfiumRenderer();
-    expect(renderer.renderPageToBuffer("test.pdf", 1)).rejects.toThrow("loading error");
+    await expect(renderer.renderPageToBuffer("test.pdf", 1)).rejects.toThrow("loading error");
   });
 });
