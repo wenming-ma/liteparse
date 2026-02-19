@@ -164,10 +164,7 @@ function isGarbledFontOutput(str: string): boolean {
     }
     // Latin Extended-A (0x100-0x17F), Latin Extended-B (0x180-0x24F),
     // Latin Extended Additional (0x1E00-0x1EFF)
-    else if (
-      (code >= 0x100 && code <= 0x24f) ||
-      (code >= 0x1e00 && code <= 0x1eff)
-    ) {
+    else if ((code >= 0x100 && code <= 0x24f) || (code >= 0x1e00 && code <= 0x1eff)) {
       latinExtendedCount++;
     }
     // Basic Latin letters (a-z, A-Z)
@@ -213,10 +210,7 @@ function isGarbledFontOutput(str: string): boolean {
 
   // Text predominantly Latin Extended with very few basic Latin letters
   // (legitimate Latin-script text would have mostly basic Latin)
-  if (
-    latinExtendedCount > totalChars * 0.3 &&
-    basicLatinLetterCount < totalChars * 0.2
-  ) {
+  if (latinExtendedCount > totalChars * 0.3 && basicLatinLetterCount < totalChars * 0.2) {
     return true;
   }
 

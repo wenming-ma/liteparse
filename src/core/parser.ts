@@ -255,10 +255,10 @@ export class LiteParse {
             // Check overlap with any garbled region (with some tolerance)
             const tolerance = 5; // PDF points
             for (const region of page.garbledTextRegions) {
-              const overlapX = ocrX < region.x + region.width + tolerance &&
-                               ocrX + ocrW > region.x - tolerance;
-              const overlapY = ocrY < region.y + region.height + tolerance &&
-                               ocrY + ocrH > region.y - tolerance;
+              const overlapX =
+                ocrX < region.x + region.width + tolerance && ocrX + ocrW > region.x - tolerance;
+              const overlapY =
+                ocrY < region.y + region.height + tolerance && ocrY + ocrH > region.y - tolerance;
               if (overlapX && overlapY) {
                 return true;
               }
@@ -279,10 +279,8 @@ export class LiteParse {
               const itemRight = item.x + (item.width || item.w || 0);
               const itemBottom = item.y + (item.height || item.h || 0);
 
-              const overlapX = ocrX < itemRight + tolerance &&
-                               ocrX + ocrW > item.x - tolerance;
-              const overlapY = ocrY < itemBottom + tolerance &&
-                               ocrY + ocrH > item.y - tolerance;
+              const overlapX = ocrX < itemRight + tolerance && ocrX + ocrW > item.x - tolerance;
+              const overlapY = ocrY < itemBottom + tolerance && ocrY + ocrH > item.y - tolerance;
 
               if (overlapX && overlapY) {
                 return true;
