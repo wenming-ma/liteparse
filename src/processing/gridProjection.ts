@@ -791,9 +791,27 @@ export function bboxToLine(
       const bboxIsMargin = bbox.isMarginLineNumber === true;
       const marginMismatch = currentLineHasMargin !== bboxIsMargin;
 
+      // Detect if bbox is in a different column based on large horizontal gap
+      // This works for any number of columns (2, 3, or more)
+      let inDifferentColumn = false;
+      if (pageWidth && currentLine.length > 0) {
+        // Get the extents of the current line
+        const rightmostInLine = Math.max(...currentLine.map((b) => b.x + b.w));
+
+        // Calculate the gap between the current line and the new bbox
+        const horizontalGap = bbox.x - rightmostInLine;
+
+        // Use a threshold based on page width - if gap is > 5% of page width,
+        // treat as different column. This works for any number of columns.
+        const columnGapThreshold = pageWidth * 0.05;
+
+        inDifferentColumn = horizontalGap > columnGapThreshold;
+      }
+
       if (
         !lineCollide &&
         !marginMismatch &&
+        !inDifferentColumn &&
         ((bbox.y + bbox.h * 0.5 >= lineMinY && bbox.y + bbox.h * 0.5 <= lineMaxY) ||
           (bbox.y >= lineMinY && bbox.y <= lineMaxY))
       ) {
@@ -819,6 +837,7 @@ export function bboxToLine(
 
   // sort lines by y
   lines.sort((a, b) => a[0].y - b[0].y);
+
   // merge 'words'
   const mergeThreshold = 1;
   for (const line of lines) {
@@ -855,7 +874,11 @@ export function bboxToLine(
         ) {
           // merge if space between this word and previous is less than average
           // character width (using previous word font size)
+
+          // Now extend the width
           previousLine.w = currentLine.x + currentLine.w - previousLine.x;
+
+          // Add space between merged items unless the previous already ends with space
           if (!previousLine.str.endsWith(" ")) {
             previousLine.str += " ";
             previousLine.strLength += 1;
@@ -1175,21 +1198,88 @@ export function projectToGrid(
         // should we add a space between the two bbox?
         // TODO RTL
         if (prevBbox && bbox.x - (prevBbox.x + prevBbox.w) > spaceThreshold) {
-          // add a space
-          bbox.shouldSpace = 1;
           const xDelta = bbox.x - (prevBbox.x + prevBbox.w);
           const prevCharWidth = prevBbox.w / prevBbox.strLength;
-          if (xDelta > prevCharWidth * 2) {
-            // Check if both items are clearly within the same column
-            // Use start x-coordinate for left column check, not x + w, to handle
-            // items that extend near the column boundary
-            const pageMidpoint = page.width * 0.5;
-            const prevInLeftColumn = prevBbox.x < pageMidpoint - 30;
-            const bboxInLeftColumn = bbox.x < pageMidpoint - 30;
-            const prevInRightColumn = prevBbox.x > pageMidpoint + 10;
-            const bboxInRightColumn = bbox.x > pageMidpoint + 10;
-            const bothInSameColumn =
-              (prevInLeftColumn && bboxInLeftColumn) || (prevInRightColumn && bboxInRightColumn);
+
+          // Check if items appear to be part of the same word
+          // Heuristics:
+          // 1. Very small gap (< 30% of char width) = definitely same word
+          // 2. Prev ends with letter, current starts with lowercase, AND
+          //    current looks like a word fragment
+          const prevStr = prevBbox.str.trimEnd();
+          const currStr = bbox.str.trimStart();
+          const prevEndsWithLetter = /[a-zA-Z]$/.test(prevStr);
+          const currStartsWithLowercase = /^[a-z]/.test(currStr);
+
+          // Common short standalone words that should NOT be merged
+          const standaloneWords = new Set([
+            "a",
+            "i",
+            "of",
+            "to",
+            "in",
+            "on",
+            "is",
+            "it",
+            "be",
+            "we",
+            "an",
+            "or",
+            "as",
+            "at",
+            "so",
+            "no",
+            "my",
+            "he",
+            "do",
+            "by",
+            "if",
+            "up",
+            "me",
+            "go",
+            "us",
+            "am",
+          ]);
+
+          const verySmallGap = xDelta < prevCharWidth * 0.3;
+          const currWord = currStr.toLowerCase().split(/\s/)[0];
+
+          // Check if current item looks like a word fragment:
+          // - Short word (<=3 chars) that's not a standalone word
+          // - Starts with doubled consonant (rr, ll, mm, nn, pp, tt, etc.) - unlikely to begin a word
+          // - Starts with certain letter patterns that indicate mid-word suffixes
+          const isShortFragment =
+            currWord.length <= 3 && !standaloneWords.has(currWord) && currStartsWithLowercase;
+          // Only truly doubled consonants - these almost never start English words
+          const startsWithDoubledConsonant = /^(bb|cc|dd|ff|gg|hh|jj|kk|ll|mm|nn|pp|qq|rr|ss|tt|vv|ww|xx|zz)/i.test(currWord);
+          // Common suffixes that indicate mid-word fragments
+          const startsWithSuffix =
+            /^(tion|sion|ness|ment|able|ible|ful|less|ing|ous|ive|ers|est|ly|ed|en|al|ic|y)$/i.test(
+              currWord
+            );
+          const isWordFragment =
+            isShortFragment || startsWithDoubledConsonant || startsWithSuffix;
+
+          // Looks like word continuation if:
+          // - Gap is very small, OR
+          // - Prev ends with letter AND current looks like a word fragment
+          const looksLikeWordContinuation =
+            verySmallGap || (prevEndsWithLetter && isWordFragment && currStartsWithLowercase);
+
+          // add a space (unless it looks like word continuation)
+          bbox.shouldSpace = looksLikeWordContinuation ? 0 : 1;
+
+          // Mark word continuations to skip floating anchor alignment
+          // and reset shouldSpace to 0
+          if (looksLikeWordContinuation) {
+            bbox.isWordContinuation = true;
+            bbox.shouldSpace = 0;
+          } else if (xDelta > prevCharWidth * 2) {
+            // Check if both items are in the same column based on gap size
+            // If gap is less than 10% of page width, treat as same column
+            // This works for any number of columns
+            const columnGapThreshold = page.width * 0.1;
+            const bothInSameColumn = xDelta < columnGapThreshold;
 
             // insert column spacing if any of:
             // - gap is more than an approximate tab (8x average char width)
@@ -1286,18 +1376,18 @@ export function projectToGrid(
             targetX = lineMax;
           }
 
-          if (!bbox.forceUnsnapped) {
+          // For word continuations, place them right after the previous item
+          // with no extra spacing beyond shouldSpace
+          if (bbox.isWordContinuation) {
+            targetX = rawLines[lineIndex].trimEnd().length + (bbox.shouldSpace ?? 0);
+          }
+
+          if (!bbox.forceUnsnapped && !bbox.isWordContinuation) {
             const floatingAnchor = forwardAnchors.floating[Math.round(bbox.x)];
             if (floatingAnchor && targetX < floatingAnchor) {
-              // Only apply floating anchor alignment if it doesn't create excessive gaps
-              // For items within a single column (not near the page midpoint), limit the gap
-              const pageMidpoint = page.width * 0.5;
-              const isInLeftColumn = bbox.x + bbox.w < pageMidpoint - 20;
-              const isInRightColumn = bbox.x > pageMidpoint + 20;
-              const isClearlyInOneColumn = isInLeftColumn || isInRightColumn;
-
               // Limit floating anchor adjustment to avoid excessive gaps in justified text
-              const maxFloatingGap = isClearlyInOneColumn ? 4 : floatingAnchor;
+              // Use a small max gap to prevent large spacing within columns
+              const maxFloatingGap = 4;
               const adjustedAnchor = Math.min(floatingAnchor, targetX + maxFloatingGap);
               if (adjustedAnchor > targetX) {
                 targetX = adjustedAnchor;
