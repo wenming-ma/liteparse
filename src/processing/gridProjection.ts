@@ -524,7 +524,7 @@ function handleRotationReadingOrder(textBbox: ProjectionTextBox[], pageHeight: n
   }
 
   // Build bboxGroup array from rotation groups, sorted by X position of group
-  let bboxGroup: ProjectionTextBox[][] = [];
+  const bboxGroup: ProjectionTextBox[][] = [];
   for (const rotation in groupsByRotation) {
     const group = groupsByRotation[rotation];
     // Sort each group by Y for proper reading order

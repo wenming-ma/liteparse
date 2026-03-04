@@ -102,8 +102,10 @@ function stripControlChars(str: string): string {
   for (const char of str) {
     const code = char.charCodeAt(0);
     // Skip C0 controls (except tab, newline, carriage return) and C1 controls
-    if ((code >= 0x00 && code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
-        (code >= 0x80 && code <= 0x9f)) {
+    if (
+      (code >= 0x00 && code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
+      (code >= 0x80 && code <= 0x9f)
+    ) {
       continue;
     }
     result += char;
@@ -140,8 +142,10 @@ function isGarbledFontOutput(str: string): boolean {
 
     // C0 control characters (0x00-0x1F) except common whitespace (tab, newline, carriage return)
     // C1 control characters (0x80-0x9F)
-    if ((code >= 0x00 && code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
-        (code >= 0x80 && code <= 0x9f)) {
+    if (
+      (code >= 0x00 && code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
+      (code >= 0x80 && code <= 0x9f)
+    ) {
       controlCharCount++;
     }
     // Private Use Area (U+E000-U+F8FF) - almost always garbled
