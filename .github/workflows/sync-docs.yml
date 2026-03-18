@@ -28,7 +28,7 @@ jobs:
         run: |
           npm install
           npm run docs:api
-          ./scripts/sync-docs-to-developer-hub.sh
+          ./scripts/sync-docs-to-developer-hub.sh developer-hub
 
       - name: Commit and push
         working-directory: developer-hub
