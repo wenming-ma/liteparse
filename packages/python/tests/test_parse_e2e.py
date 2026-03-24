@@ -38,7 +38,7 @@ class TestParseBasic:
 
     def test_parse_bytest_input(self, parser: LiteParse, invoice_pdf: Path):
         file_bytes = invoice_pdf.read_bytes()
-        result = parser.parse(file_bytes=file_bytes)
+        result = parser.parse(file_bytes)
         assert result.json is not None
         assert "pages" in result.json
 
@@ -51,7 +51,7 @@ class TestParseBasic:
     @pytest.mark.asyncio
     async def test_parse_async_bytes_input(self, parser: LiteParse, invoice_pdf: Path):
         file_bytes = invoice_pdf.read_bytes()
-        result = await parser.parse_async(file_bytes=file_bytes)
+        result = await parser.parse_async(file_bytes)
         assert result.json is not None
         assert "pages" in result.json
 
