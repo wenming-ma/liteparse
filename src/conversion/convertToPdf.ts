@@ -106,6 +106,7 @@ async function executeCommand(command: string, args: string[], timeoutMs = 60000
   return new Promise((resolve, reject) => {
     const proc = spawn(command, args, {
       stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: process.platform === "win32",
     });
 
     let stdout = "";
